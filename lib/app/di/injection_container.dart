@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import '../../data/datasources/local/product_local_data_source.dart';
 import '../../data/datasources/remote/product_remote_data_source.dart';
 import '../../data/repositories/product_repository_impl.dart';
 import '../../domain/repositories/product_repository.dart';
@@ -20,13 +21,19 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<http.Client>(() => http.Client());
 
   // Data sources
+  sl.registerLazySingleton<ProductLocalDataSource>(
+    () => ProductLocalDataSourceImpl(),
+  );
   sl.registerLazySingleton<ProductRemoteDataSource>(
     () => ProductRemoteDataSourceImpl(client: sl()),
   );
 
   // Repositories
   sl.registerLazySingleton<ProductRepository>(
-    () => ProductRepositoryImpl(remoteDataSource: sl()),
+    () => ProductRepositoryImpl(
+      remoteDataSource: sl(),
+      localDataSource: sl(),
+    ),
   );
 
   // Use cases

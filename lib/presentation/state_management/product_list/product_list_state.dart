@@ -13,6 +13,7 @@ class ProductListState extends Equatable {
   final List<String> categories;
   final String? errorMessage;
   final bool isLoadingMore;
+  final bool isFromCache;
 
   const ProductListState({
     this.status = ProductListStatus.initial,
@@ -24,6 +25,7 @@ class ProductListState extends Equatable {
     this.categories = const [],
     this.errorMessage,
     this.isLoadingMore = false,
+    this.isFromCache = false,
   });
 
   ProductListState copyWith({
@@ -36,6 +38,7 @@ class ProductListState extends Equatable {
     List<String>? categories,
     String? Function()? errorMessage,
     bool? isLoadingMore,
+    bool? isFromCache,
   }) {
     return ProductListState(
       status: status ?? this.status,
@@ -49,6 +52,7 @@ class ProductListState extends Equatable {
       categories: categories ?? this.categories,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      isFromCache: isFromCache ?? this.isFromCache,
     );
   }
 
@@ -63,5 +67,6 @@ class ProductListState extends Equatable {
         categories,
         errorMessage,
         isLoadingMore,
+        isFromCache,
       ];
 }

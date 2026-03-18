@@ -20,6 +20,8 @@ class ProductCatalogApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeMode,
+            themeAnimationDuration: const Duration(milliseconds: 320),
+            themeAnimationCurve: Curves.easeInOutCubic,
             routerConfig: sl<AppRouter>().router,
           );
         },
