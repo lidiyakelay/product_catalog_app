@@ -8,7 +8,7 @@ import '../../domain/usecases/get_product_usecase.dart';
 import '../../domain/usecases/get_products_by_category_usecase.dart';
 import '../../domain/usecases/get_products_usecase.dart';
 import '../../domain/usecases/search_products_usecase.dart';
-import '../../presentation/state_management/product_detail/product_detail_cubit.dart';
+import '../../presentation/state_management/product_detail/product_detail_bloc.dart';
 import '../../presentation/state_management/product_list/product_list_bloc.dart';
 import '../../presentation/state_management/theme/theme_cubit.dart';
 import '../routes/app_router.dart';
@@ -45,7 +45,7 @@ Future<void> initDependencies() async {
       getProductsByCategory: sl(),
     ),
   );
-  sl.registerFactory(() => ProductDetailCubit(getProduct: sl()));
+  sl.registerFactory(() => ProductDetailBloc(getProduct: sl()));
   sl.registerLazySingleton(() => ThemeCubit());
 
   // Router

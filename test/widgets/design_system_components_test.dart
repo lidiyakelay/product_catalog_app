@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:product_catalog_app/core/theme/app_theme.dart';
-import 'package:product_catalog_app/data/models/product.dart';
-import 'package:product_catalog_app/ui/components/category_chips.dart';
-import 'package:product_catalog_app/ui/components/product_card.dart';
+import 'package:product_catalog_app/app/theme/app_theme.dart';
+import 'package:product_catalog_app/domain/entities/product.dart';
+import 'package:product_catalog_app/presentation/widgets/category_chips.dart';
+import 'package:product_catalog_app/presentation/widgets/product_card.dart';
 
 void main() {
   Widget wrap(Widget child) {

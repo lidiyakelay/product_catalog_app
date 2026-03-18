@@ -27,26 +27,25 @@ flutter test
 ## Architecture Overview
 
 ### Folder structure
-- `lib/core/theme/`: app theme tokens, color system, typography, spacing and shape values.
-- `lib/data/api/`: HTTP client for DummyJSON endpoints.
-- `lib/data/models/`: product and response models with parsing + validation defaults.
-- `lib/data/repositories/`: repository abstraction over API client.
-- `lib/bloc/`: state management layers (`ProductListBloc`, `ProductDetailCubit`, `ThemeCubit`).
-- `lib/ui/components/`: reusable design system UI components (cards, chips, state widgets, shimmer, search bar).
-- `lib/ui/screens/`: screen-level composition (list, detail, showcase).
-- `lib/router/`: centralized GoRouter route definitions.
+- `lib/app/`: app-level configuration (`constants`, `di`, `routes`, `theme`).
+- `lib/core/`: shared core utilities and abstractions (`error`, `usecases`, `utils`).
+- `lib/domain/`: business layer (`entities`, `repositories`, `usecases`).
+- `lib/data/`: data layer (`datasources/remote`, `models`, `repositories`).
+- `lib/presentation/`: UI and state (`pages`, `widgets`, `state_management`).
+- `lib/app.dart`, `lib/main.dart`: app bootstrap and runtime wiring.
+- `lib/bloc/`, `lib/ui/`, `lib/router/`: legacy folders retained during migration compatibility.
 
 ### State management approach
 - `flutter_bloc` is used to separate business logic from UI.
-- Product list handles explicit states: `initial`, `loading`, `loaded`, `error`, `empty`.
-- Product detail handles explicit states: `initial`, `loading`, `loaded`, `error`.
+- Product list state lives in `lib/presentation/state_management/product_list/` and handles explicit states: `initial`, `loading`, `loaded`, `error`, `empty`.
+- Product detail state lives in `lib/presentation/state_management/product_detail/` and handles explicit states: `initial`, `loading`, `loaded`, `error`.
 - Theme state is controlled via `ThemeCubit`.
 
 ### Key architectural decisions
-- Repository pattern isolates network calls from presentation/state layers.
+- Repository + use case layering isolates network calls from UI state and keeps business logic testable.
 - Debounced search (500ms) avoids excessive API requests.
 - Infinite scroll is implemented through `ScrollController` + pagination (`limit/skip`).
-- `GoRouter` is used for centralized declarative routes and deep linking (`/products/:id`).
+- `GoRouter` is used through centralized routing in `lib/app/routes/app_router.dart` with deep linking (`/products/:id`).
 - On tablet width (`>= 768`), the app switches to master-detail; on phone, it uses push navigation.
 
 ## Design System Rationale

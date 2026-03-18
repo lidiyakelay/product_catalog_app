@@ -1,4 +1,5 @@
 import 'package:logger/logger.dart';
+import '../../core/utils/image_validator.dart';
 import '../../domain/entities/product.dart';
 
 final _log = Logger();
@@ -22,10 +23,23 @@ class ProductModel extends Product {
     final id = json['id'] as int? ?? 0;
 
     double parseDouble(dynamic v, String field) {
-      if (v == null) return 0.0;
-      final d = (v is num) ? v.toDouble() : double.tryParse(v.toString()) ?? 0.0;
+      if (v == null) {
+        if (field == 'price') {
+          _log.e('Product $id: Missing price, defaulting to 0');
+        } else {
+          _log.w('Product $id: Missing $field, defaulting to 0');
+        }
+        return 0.0;
+      }
+
+      final d =
+          (v is num) ? v.toDouble() : double.tryParse(v.toString()) ?? 0.0;
       if (d < 0) {
-        _log.w('ProductModel[$id]: negative $field ($d), defaulting to 0');
+        if (field == 'price') {
+          _log.e('Product $id: Missing or negative price ($d), defaulting to 0');
+        } else {
+          _log.w('Product $id: Negative $field ($d), defaulting to 0');
+        }
         return 0.0;
       }
       return d;
@@ -33,16 +47,39 @@ class ProductModel extends Product {
 
     final rawImages = json['images'];
     final images = rawImages is List
-        ? rawImages.map((e) => e.toString()).where(_isValidUrl).toList()
+        ? rawImages
+            .map((e) => validateImageUrl(e.toString(), 'image', id))
+            .where((url) => url.isNotEmpty)
+            .toList()
         : <String>[];
 
-    final thumbnail = _isValidUrl(json['thumbnail']?.toString())
-        ? json['thumbnail'].toString()
+    final validatedThumbnail = validateImageUrl(
+      json['thumbnail']?.toString() ?? '',
+      'thumbnail',
+      id,
+    );
+
+    final thumbnail = validatedThumbnail.isNotEmpty
+        ? validatedThumbnail
         : (images.isNotEmpty ? images.first : '');
+
+    final rawBrand = json['brand']?.toString().trim();
+    if (rawBrand == null || rawBrand.isEmpty) {
+      _log.w('Product $id: Missing brand, using default');
+    }
+
+    if (images.isEmpty && thumbnail.isEmpty) {
+      _log.w('Product $id: No valid images available, UI will show placeholder');
+    }
+
+    final rawTitle = json['title']?.toString().trim();
+    final rawCategory = json['category']?.toString().trim();
 
     return ProductModel(
       id: id,
-      title: json['title']?.toString().trim() ?? 'Unknown Product',
+      title: (rawTitle == null || rawTitle.isEmpty)
+          ? 'Untitled Product'
+          : rawTitle,
       description: json['description']?.toString().trim() ?? '',
       price: parseDouble(json['price'], 'price'),
       discountPercentage:
@@ -51,8 +88,10 @@ class ProductModel extends Product {
       rating:
           parseDouble(json['rating'], 'rating').clamp(0.0, 5.0),
       stock: (json['stock'] as int?) ?? 0,
-      brand: json['brand']?.toString().trim() ?? 'Unknown',
-      category: json['category']?.toString().trim() ?? 'uncategorized',
+      brand: (rawBrand == null || rawBrand.isEmpty) ? 'Unknown brand' : rawBrand,
+      category: (rawCategory == null || rawCategory.isEmpty)
+          ? 'Uncategorized'
+          : rawCategory,
       thumbnail: thumbnail,
       images: images,
     );
@@ -83,10 +122,4 @@ class ProductsResponseModel {
       limit: json['limit'] as int? ?? 0,
     );
   }
-}
-
-bool _isValidUrl(String? url) {
-  if (url == null || url.isEmpty) return false;
-  final lower = url.toLowerCase();
-  return lower.startsWith('http://') || lower.startsWith('https://');
 }

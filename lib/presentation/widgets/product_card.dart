@@ -168,47 +168,72 @@ class _PriceRow extends StatelessWidget {
     }
 
     final hasDiscount = product.discountPercentage > 0;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Text(
-          '\$${product.discountedPrice.toStringAsFixed(2)}',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: theme.colorScheme.primary,
-          ),
+    final discountBadge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.discountDark : AppColors.discountLight,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        '-${product.discountPercentage.toStringAsFixed(0)}%',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
         ),
-        if (hasDiscount) ...[
-          const SizedBox(width: 6),
-          Text(
-            '\$${product.price.toStringAsFixed(2)}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              decoration: TextDecoration.lineThrough,
-              color: isDark
-                  ? AppColors.onSurfaceVariantDark
-                  : AppColors.onSurfaceVariantLight,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.discountDark : AppColors.discountLight,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              '-${product.discountPercentage.toStringAsFixed(0)}%',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isTight = constraints.maxWidth < 220;
+
+        return Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '\$${product.discountedPrice.toStringAsFixed(2)}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.primary,
+                          fontSize: isTight ? 15 : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (hasDiscount) ...[
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        '\$${product.price.toStringAsFixed(2)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          decoration: TextDecoration.lineThrough,
+                          color: isDark
+                              ? AppColors.onSurfaceVariantDark
+                              : AppColors.onSurfaceVariantLight,
+                          fontSize: isTight ? 10 : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-          ),
-        ],
-      ],
+            if (hasDiscount) ...[
+              const SizedBox(width: 4),
+              discountBadge,
+            ],
+          ],
+        );
+      },
     );
   }
 }

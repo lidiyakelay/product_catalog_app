@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/di/injection_container.dart';
 import '../../../app/theme/app_theme.dart';
-import '../../../presentation/state_management/product_detail/product_detail_cubit.dart';
+import '../../../presentation/state_management/product_detail/product_detail_bloc.dart';
+import '../../../presentation/state_management/product_detail/product_detail_event.dart';
 import '../../../presentation/state_management/product_detail/product_detail_state.dart';
 import '../../../presentation/state_management/product_list/product_list_bloc.dart';
 import '../../../presentation/state_management/product_list/product_list_event.dart';
@@ -74,19 +75,15 @@ class _ProductListPageState extends State<ProductListPage> {
         ),
         if (isWide)
           BlocProvider(
-            create: (_) => sl<ProductDetailCubit>()
-              ..loadProduct(_selectedProductId ?? 1),
+            create: (_) => sl<ProductDetailBloc>()
+              ..add(ProductDetailRequested(_selectedProductId ?? 1)),
           ),
       ],
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Product Catalog'),
           actions: [
-            IconButton(
-              onPressed: () => context.push('/showcase'),
-              icon: const Icon(Icons.view_quilt_outlined),
-              tooltip: 'Design Showcase',
-            ),
+           
             Builder(
               builder: (ctx) => IconButton(
                 onPressed: () => ctx.push('/showcase'),
@@ -133,7 +130,7 @@ class _ProductListPageState extends State<ProductListPage> {
                   selectedProductId: _selectedProductId,
                   onProductTap: (id) {
                     setState(() => _selectedProductId = id);
-                    context.read<ProductDetailCubit>().loadProduct(id);
+                    context.read<ProductDetailBloc>().add(ProductDetailRequested(id));
                     context.go('/products?selected=$id');
                   },
                 ),
@@ -145,26 +142,28 @@ class _ProductListPageState extends State<ProductListPage> {
         Expanded(
           child: _selectedProductId == null
               ? const NoSelectionWidget()
-              : BlocBuilder<ProductDetailCubit, ProductDetailState>(
+              : BlocBuilder<ProductDetailBloc, ProductDetailState>(
                   builder: (context, state) {
-                    switch (state.status) {
-                      case ProductDetailStatus.initial:
-                      case ProductDetailStatus.loading:
+                    if (state is ProductDetailInitial || state is ProductDetailLoading) {
                         return const Center(
                           child: CircularProgressIndicator(),
                         );
-                      case ProductDetailStatus.error:
-                        return ErrorStateWidget(
-                          message:
-                              state.errorMessage ?? 'Failed to load product',
-                          onRetry: () => context
-                              .read<ProductDetailCubit>()
-                              .loadProduct(_selectedProductId!),
-                        );
-                      case ProductDetailStatus.loaded:
-                        if (state.product == null) return const NoSelectionWidget();
-                        return ProductDetailContent(product: state.product!);
                     }
+
+                    if (state is ProductDetailError) {
+                        return ErrorStateWidget(
+                          message: state.message,
+                          onRetry: () => context
+                              .read<ProductDetailBloc>()
+                              .add(ProductDetailRequested(_selectedProductId!)),
+                        );
+                    }
+
+                    if (state is ProductDetailLoaded) {
+                      return ProductDetailContent(product: state.product);
+                    }
+
+                    return const NoSelectionWidget();
                   },
                 ),
         ),
@@ -227,7 +226,8 @@ class _ProductListContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ProductListBloc, ProductListState>(
       builder: (context, state) {
-        if (state.status == ProductListStatus.loading &&
+        if ((state.status == ProductListStatus.initial ||
+                state.status == ProductListStatus.loading) &&
             state.products.isEmpty) {
           return const ShimmerLoadingList();
         }

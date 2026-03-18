@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:product_catalog_app/data/models/product.dart';
+import 'package:product_catalog_app/data/models/product_model.dart';
 
 void main() {
-  group('Product.fromJson', () {
+  group('ProductModel.fromJson', () {
     test('parses valid JSON correctly', () {
       final json = {
         'id': 1,
@@ -18,7 +18,7 @@ void main() {
         'images': ['https://example.com/img1.jpg'],
       };
 
-      final product = Product.fromJson(json);
+      final product = ProductModel.fromJson(json);
 
       expect(product.id, 1);
       expect(product.title, 'Phone');
@@ -30,7 +30,7 @@ void main() {
     test('uses fallback values for missing fields', () {
       final json = {'id': 2};
 
-      final product = Product.fromJson(json);
+      final product = ProductModel.fromJson(json);
 
       expect(product.title, 'Untitled Product');
       expect(product.brand, 'Unknown brand');
@@ -41,15 +41,15 @@ void main() {
     test('handles invalid price as unavailable', () {
       final json = {'id': 3, 'title': 'Broken product', 'price': -10};
 
-      final product = Product.fromJson(json);
+      final product = ProductModel.fromJson(json);
 
       expect(product.hasValidPrice, isFalse);
-      expect(product.price, -1);
+      expect(product.price, 0);
       expect(product.discountedPrice, 0);
     });
   });
 
-  group('ProductsResponse.fromJson', () {
+  group('ProductsResponseModel.fromJson', () {
     test('parses products response and hasMore correctly', () {
       final json = {
         'products': [
@@ -60,11 +60,11 @@ void main() {
         'limit': 20,
       };
 
-      final response = ProductsResponse.fromJson(json);
+      final response = ProductsResponseModel.fromJson(json);
 
       expect(response.products.length, 1);
       expect(response.total, 100);
-      expect(response.hasMore, isTrue);
+      expect(response.skip + response.limit < response.total, isTrue);
     });
   });
 }

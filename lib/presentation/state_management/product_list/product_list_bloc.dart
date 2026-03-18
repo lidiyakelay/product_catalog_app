@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:logger/logger.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../core/usecases/usecase.dart';
 import '../../../domain/entities/product.dart';
@@ -17,6 +18,7 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
   final GetProductsByCategoryUseCase getProductsByCategory;
 
   Timer? _debounceTimer;
+  final Logger _logger = Logger();
 
   ProductListBloc({
     required this.getProducts,
@@ -37,6 +39,7 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
     Emitter<ProductListState> emit,
   ) async {
     emit(state.copyWith(status: ProductListStatus.loading));
+    await _ensureCategoriesLoaded(emit);
     try {
       final result = await _fetchProducts(skip: 0);
       emit(
@@ -50,13 +53,25 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
           errorMessage: () => null,
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
+      _logger.e('Failed to fetch products', error: e, stackTrace: st);
       emit(
         state.copyWith(
           status: ProductListStatus.error,
-          errorMessage: () => e.toString(),
+          errorMessage: () => AppConstants.productListErrorMessage,
         ),
       );
+    }
+  }
+
+  Future<void> _ensureCategoriesLoaded(Emitter<ProductListState> emit) async {
+    if (state.categories.isNotEmpty) return;
+
+    try {
+      final categories = await getCategories(const NoParams());
+      emit(state.copyWith(categories: categories));
+    } catch (_) {
+      // Non-critical — keep product fetch flow running and retry later.
     }
   }
 
@@ -80,7 +95,8 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
           isLoadingMore: false,
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
+      _logger.w('Failed to fetch next product page', error: e, stackTrace: st);
       emit(state.copyWith(isLoadingMore: false));
     }
   }
