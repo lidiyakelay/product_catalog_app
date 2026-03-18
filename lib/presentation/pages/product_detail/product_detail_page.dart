@@ -110,10 +110,13 @@ class _ProductDetailContentState extends State<ProductDetailContent> {
               ),
               const SizedBox(height: 12),
               // Category
-              Chip(
-                label: Text(product.category),
-                avatar: const Icon(Icons.category_outlined, size: 16),
-                visualDensity: VisualDensity.compact,
+              Align(
+                alignment: Alignment.topLeft,
+                child: Chip(
+                  label: Text(product.category),
+                  avatar: const Icon(Icons.category_outlined, size: 16),
+                  visualDensity: VisualDensity.compact,
+                ),
               ),
               const SizedBox(height: 16),
 
