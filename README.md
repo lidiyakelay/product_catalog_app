@@ -1,12 +1,12 @@
 # Product Catalog App
 
-Flutter technical assessment implementation for a product catalog app using the DummyJSON API, with a reusable design system, responsive master-detail layout, deep linking, and test coverage.
+Flutter technical assessment implementation using DummyJSON, with a reusable design system, clean architecture layering, responsive master-detail behavior, deep linking, offline fallback cache, and test coverage.
 
-## Setup & Run Instructions
+## 1. Setup & Run Instructions
 
-### Prerequisites
-- Flutter `3.35.1` (stable)
-- Dart `3.9.0`
+### Toolchain
+- Flutter 3.35.1 (stable)
+- Dart 3.9.0
 
 ### Install dependencies
 ```bash
@@ -18,76 +18,80 @@ flutter pub get
 flutter run
 ```
 
-### Analyze and test
+### Quality checks
 ```bash
 flutter analyze
 flutter test
 ```
 
-## Architecture Overview
+## 2. Architecture Overview
 
 ### Folder structure
-- `lib/app/`: app-level configuration (`constants`, `di`, `routes`, `theme`).
-- `lib/core/`: shared core utilities and abstractions (`error`, `usecases`, `utils`).
-- `lib/domain/`: business layer (`entities`, `repositories`, `usecases`).
-- `lib/data/`: data layer (`datasources/remote`, `models`, `repositories`).
-- `lib/presentation/`: UI and state (`pages`, `widgets`, `state_management`).
-- `lib/app.dart`, `lib/main.dart`: app bootstrap and runtime wiring.
-- `lib/bloc/`, `lib/ui/`, `lib/router/`: legacy folders retained during migration compatibility.
+- `lib/app/`: app-level wiring (`constants`, `di`, `routes`, `theme`).
+- `lib/core/`: cross-cutting concerns (`error`, `usecases`, `utils`).
+- `lib/domain/`: entities, repository contracts, use cases.
+- `lib/data/`: remote/local datasources, models, repository implementation.
+- `lib/presentation/`: pages, reusable widgets, Bloc/Cubit state management.
+- `lib/main.dart`, `lib/app.dart`: bootstrap and app root composition.
 
 ### State management approach
-- `flutter_bloc` is used to separate business logic from UI.
-- Product list state lives in `lib/presentation/state_management/product_list/` and handles explicit states: `initial`, `loading`, `loaded`, `error`, `empty`.
-- Product detail state lives in `lib/presentation/state_management/product_detail/` and handles explicit states: `initial`, `loading`, `loaded`, `error`.
-- Theme state is controlled via `ThemeCubit`.
+- `flutter_bloc` with feature-scoped state:
+	- `ProductListBloc`: pagination, filters, search debounce, refresh, cache source flag.
+	- `ProductDetailBloc`: detail fetch and error states.
+	- `ThemeCubit`: global light/dark mode control.
 
 ### Key architectural decisions
-- Repository + use case layering isolates network calls from UI state and keeps business logic testable.
-- Debounced search (500ms) avoids excessive API requests.
-- Infinite scroll is implemented through `ScrollController` + pagination (`limit/skip`).
-- `GoRouter` is used through centralized routing in `lib/app/routes/app_router.dart` with deep linking (`/products/:id`).
-- On tablet width (`>= 768`), the app switches to master-detail; on phone, it uses push navigation.
+- Use case + repository boundaries keep UI independent from data sources.
+- Remote-first strategy with local SQLite fallback for product data.
+- Centralized routing with `go_router` and deep links (`/products/:id`, `/showcase`).
+- Responsive behavior:
+	- tablet/desktop (`>= 768`): master-detail split view.
+	- phone: push navigation between list/detail.
 
-## Design System Rationale
+## 3. Design System Rationale
 
 ### Component API choices
-- `ProductCard`: receives a `Product`, optional `onTap`, and optional `isSelected` for tablet selection highlighting.
-- `SearchBarWidget`: controlled input callback with reusable hint text.
-- `CategoryChips`: simple selection API using `selectedCategory` + `onSelected`.
-- `ErrorStateWidget`, `EmptyStateWidget`, and `NoSelectionWidget`: reusable state visuals for consistency.
-- `ShimmerLoadingList` and `ProductCardSkeleton`: standard loading placeholder visuals.
+- `ProductCard`: domain-first API (`product`), plus optional `onTap` and `isSelected`.
+- `SearchBarWidget`: reusable controlled input with `initialQuery` and `onChanged`.
+- `CategoryChips`: clear selection contract (`selectedCategory`, `onSelected`).
+- State components (`ErrorStateWidget`, `EmptyStateWidget`, `NoSelectionWidget`) provide consistent UX for async/loading edge cases.
+- Loading components (`ProductCardSkeleton`, `ShimmerLoadingList`) standardize perceived performance behavior.
 
-### Theming strategy
-- Light and dark themes are defined in `AppTheme`.
-- Core visual tokens are centralized (`AppColors`, `AppTypography`, spacing, radius constants).
-- Components consume theme values and adapt color semantics in both modes.
+### Theming approach
+- Light and dark themes are centralized in `AppTheme`.
+- Components consume semantic theme values from `ThemeData` rather than hardcoded colors where possible.
+- Theme mode is controlled via `ThemeCubit` and applied at app root with smooth transition animation.
 
-### Deviations from spec
-- Combined search + category is implemented with server-side search, then category filtering client-side for the combined mode because the API does not provide a dedicated endpoint for search-within-category.
-- Data validation logs are handled in model parsing (using `logger`) and fallback values are applied to prevent crashes.
+### Deviations / practical handling
+- API does not provide direct “search within category” endpoint, so combined mode is handled by searching then filtering by category.
+- Imperfect API data is normalized in model parsing (fallback values, validation, and safe UI defaults).
 
-## Limitations
+## 4. Limitations
 
-- Offline caching is not implemented (optional enhancement B).
-- Some advanced polish enhancements are partial/minimal (for example, full stagger choreography and custom pull-to-refresh animation can be improved).
-- Persisting theme preference and filters across app restarts is not implemented.
-- Category names use API slugs with formatting; richer display metadata is not provided by API.
+- Cache invalidation is currently TTL-based (6 hours) and simple; no background stale-while-revalidate pipeline yet.
+- Offline fallback is focused on product/categorical/search list use cases; conflict resolution is not needed because data is read-only.
+- Theme preference is not persisted across app restarts.
+- Animation polish can still be extended (for example richer entrance choreography and more nuanced refresh visuals) while keeping UX simple.
 
-If more time were available:
-1. Add local cache (Hive/Isar) with stale-while-revalidate strategy and cache freshness indicators.
-2. Improve animation system (staggered list entrance, shared transitions tuned by breakpoint).
-3. Add more robust repository tests with mocked API client and error matrix.
-4. Add golden tests for design system components in light and dark themes.
+With more time, I would add:
+1. Persisted user preferences (theme, selected filters) and richer cache metadata (last sync timestamp per dataset).
+2. Additional repository/data-source unit tests specifically for offline fallback branches.
+3. Golden tests for key design-system widgets in both themes.
+4. Lightweight performance benchmarking in profile mode for 100+ item scrolling.
 
-## AI Tools Usage
+## 5. AI Tools Usage
 
-AI tools were used to accelerate scaffolding and repetitive setup, including:
-- Initial project structure planning.
-- Drafting component/state layer boilerplate.
-- Generating baseline tests and README skeleton.
+AI was used as an engineering accelerator, not as a source of final truth.
 
-All generated outputs were reviewed, corrected, and refined manually:
-- Routing and responsive behavior were adjusted for assignment requirements.
-- Type/lint issues were fixed and verified through `flutter analyze`.
-- Tests were validated by running `flutter test`.
-- Component APIs and state flow were tuned for clarity and maintainability.
+Where it helped:
+- Generate and compare implementation options for architecture refactors, UI decomposition, and optional enhancements.
+- Speed up repetitive boilerplate for Bloc wiring, tests, and docs structure.
+- Surface edge cases and validation paths during iterative debugging.
+
+What was intentionally refined manually:
+- Final architecture boundaries and naming decisions.
+- Error-handling behavior and user-facing messaging.
+- Responsive layout behavior, navigation semantics, and UI polish trade-offs.
+- Test expectations and failure-case behavior.
+
+In short: AI assisted with throughput; design decisions, code quality checks, and final implementation choices were curated and validated manually.
