@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import '../../presentation/pages/product_detail/product_detail_page.dart';
 import '../../presentation/pages/product_list/product_list_page.dart';
+import '../../presentation/pages/showcase/showcase_page.dart';
 
 class AppRouter {
   late final GoRouter router = GoRouter(
@@ -22,7 +23,10 @@ class AppRouter {
           return ProductDetailPage(productId: id);
         },
       ),
-      
+      GoRoute(
+        path: '/showcase',
+        builder: (context, state) => const ShowcasePage(),
+      ),
     ],
   );
 }
