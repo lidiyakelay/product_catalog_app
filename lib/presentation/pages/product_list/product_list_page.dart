@@ -83,6 +83,11 @@ class _ProductListPageState extends State<ProductListPage> {
         appBar: AppBar(
           title: const Text('Product Catalog'),
           actions: [
+            IconButton(
+              onPressed: () => context.push('/showcase'),
+              icon: const Icon(Icons.grid_view_rounded),
+              tooltip: 'Open component showcase',
+            ),
             BlocBuilder<ThemeCubit, ThemeMode>(
               builder: (context, themeMode) {
                 final isDark = themeMode == ThemeMode.dark ||

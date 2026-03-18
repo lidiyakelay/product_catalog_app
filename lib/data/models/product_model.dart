@@ -2,7 +2,21 @@ import 'package:logger/logger.dart';
 import '../../core/utils/image_validator.dart';
 import '../../domain/entities/product.dart';
 
-final _log = Logger();
+final _log = Logger(printer: PrettyPrinter(methodCount: 0));
+const int _maxWarningLogsPerType = 5;
+final Map<String, int> _warningLogCounts = <String, int>{};
+
+void _logWarningThrottled(String key, String message) {
+  final count = _warningLogCounts[key] ?? 0;
+  if (count >= _maxWarningLogsPerType) return;
+
+  _log.w(message);
+  _warningLogCounts[key] = count + 1;
+
+  if (count + 1 == _maxWarningLogsPerType) {
+    _log.i('Further "$key" warnings are suppressed for this session.');
+  }
+}
 
 class ProductModel extends Product {
   const ProductModel({
@@ -27,7 +41,10 @@ class ProductModel extends Product {
         if (field == 'price') {
           _log.e('Product $id: Missing price, defaulting to 0');
         } else {
-          _log.w('Product $id: Missing $field, defaulting to 0');
+          _logWarningThrottled(
+            'missing_$field',
+            'Product $id: Missing $field, defaulting to 0',
+          );
         }
         return 0.0;
       }
@@ -38,7 +55,10 @@ class ProductModel extends Product {
         if (field == 'price') {
           _log.e('Product $id: Missing or negative price ($d), defaulting to 0');
         } else {
-          _log.w('Product $id: Negative $field ($d), defaulting to 0');
+          _logWarningThrottled(
+            'negative_$field',
+            'Product $id: Negative $field ($d), defaulting to 0',
+          );
         }
         return 0.0;
       }
@@ -65,11 +85,17 @@ class ProductModel extends Product {
 
     final rawBrand = json['brand']?.toString().trim();
     if (rawBrand == null || rawBrand.isEmpty) {
-      _log.w('Product $id: Missing brand, using default');
+      _logWarningThrottled(
+        'missing_brand',
+        'Product $id: Missing brand, using default',
+      );
     }
 
     if (images.isEmpty && thumbnail.isEmpty) {
-      _log.w('Product $id: No valid images available, UI will show placeholder');
+      _logWarningThrottled(
+        'missing_images',
+        'Product $id: No valid images available, UI will show placeholder',
+      );
     }
 
     final rawTitle = json['title']?.toString().trim();
