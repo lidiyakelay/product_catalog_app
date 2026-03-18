@@ -50,6 +50,7 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
           products: result.products,
           hasMore: result.hasMore,
           currentPage: 0,
+          isFromCache: result.isFromCache,
           errorMessage: () => null,
         ),
       );
@@ -93,6 +94,7 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
           hasMore: result.hasMore,
           currentPage: nextPage,
           isLoadingMore: false,
+          isFromCache: state.isFromCache && result.isFromCache,
         ),
       );
     } catch (e, st) {
@@ -153,7 +155,11 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
       );
       final filtered =
           paginated.products.where((p) => p.category == category).toList();
-      return _FetchResult(products: filtered, hasMore: paginated.hasMore);
+      return _FetchResult(
+        products: filtered,
+        hasMore: paginated.hasMore,
+        isFromCache: paginated.isFromCache,
+      );
     } else if (query.isNotEmpty) {
       final paginated = await searchProducts(
         SearchProductsParams(query: query, limit: limit, skip: skip),
@@ -161,6 +167,7 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
       return _FetchResult(
         products: paginated.products,
         hasMore: paginated.hasMore,
+        isFromCache: paginated.isFromCache,
       );
     } else if (category != null) {
       final paginated = await getProductsByCategory(
@@ -169,6 +176,7 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
       return _FetchResult(
         products: paginated.products,
         hasMore: paginated.hasMore,
+        isFromCache: paginated.isFromCache,
       );
     } else {
       final paginated = await getProducts(
@@ -177,6 +185,7 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
       return _FetchResult(
         products: paginated.products,
         hasMore: paginated.hasMore,
+        isFromCache: paginated.isFromCache,
       );
     }
   }
@@ -191,6 +200,11 @@ class ProductListBloc extends Bloc<ProductListEvent, ProductListState> {
 class _FetchResult {
   final List<Product> products;
   final bool hasMore;
+  final bool isFromCache;
 
-  _FetchResult({required this.products, required this.hasMore});
+  _FetchResult({
+    required this.products,
+    required this.hasMore,
+    required this.isFromCache,
+  });
 }
