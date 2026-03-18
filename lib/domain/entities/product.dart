@@ -48,16 +48,18 @@ class PaginatedProducts extends Equatable {
   final int total;
   final int skip;
   final int limit;
+  final bool isFromCache;
 
   const PaginatedProducts({
     required this.products,
     required this.total,
     required this.skip,
     required this.limit,
+    this.isFromCache = false,
   });
 
   bool get hasMore => skip + limit < total;
 
   @override
-  List<Object?> get props => [products, total, skip, limit];
+  List<Object?> get props => [products, total, skip, limit, isFromCache];
 }

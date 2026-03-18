@@ -45,34 +45,67 @@ class ProductListContent extends StatelessWidget {
           );
         }
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            context.read<ProductListBloc>().add(const ProductListRefreshed());
-          },
-          child: ListView.builder(
-            controller: scrollController,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingMd,
-            ),
-            itemCount: state.products.length + (state.isLoadingMore ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= state.products.length) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              final product = state.products[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
-                child: ProductCard(
-                  product: product,
-                  isSelected: selectedProductId == product.id,
-                  onTap: () => onProductTap(product.id),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (state.isFromCache)
+              Container(
+                width: MediaQuery.of(context).size.width/4,
+                margin: const EdgeInsets.fromLTRB(
+                  AppTheme.spacingMd,
+                  0,
+                  AppTheme.spacingMd,
+                  AppTheme.spacingSm,
                 ),
-              );
-            },
-          ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingSm,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'offline mode',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.errorContainer,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  context.read<ProductListBloc>().add(const ProductListRefreshed());
+                },
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingMd,
+                  ),
+                  itemCount: state.products.length + (state.isLoadingMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index >= state.products.length) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final product = state.products[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+                      child: ProductCard(
+                        product: product,
+                        isSelected: selectedProductId == product.id,
+                        onTap: () => onProductTap(product.id),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         );
       },
     );

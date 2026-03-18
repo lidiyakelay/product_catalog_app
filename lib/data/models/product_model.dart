@@ -1,4 +1,5 @@
 import 'package:logger/logger.dart';
+import 'dart:convert';
 import '../../core/utils/image_validator.dart';
 import '../../domain/entities/product.dart';
 
@@ -121,6 +122,45 @@ class ProductModel extends Product {
       thumbnail: thumbnail,
       images: images,
     );
+  }
+
+  factory ProductModel.fromDbMap(Map<String, dynamic> map) {
+    final rawImages = map['images']?.toString() ?? '[]';
+    final decodedImages = jsonDecode(rawImages);
+
+    return ProductModel(
+      id: (map['id'] as int?) ?? 0,
+      title: map['title']?.toString() ?? 'Untitled Product',
+      description: map['description']?.toString() ?? '',
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      discountPercentage:
+          (map['discount_percentage'] as num?)?.toDouble() ?? 0.0,
+      rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
+      stock: (map['stock'] as int?) ?? 0,
+      brand: map['brand']?.toString() ?? 'Unknown brand',
+      category: map['category']?.toString() ?? 'Uncategorized',
+      thumbnail: map['thumbnail']?.toString() ?? '',
+      images: decodedImages is List
+          ? decodedImages.map((e) => e.toString()).toList()
+          : const <String>[],
+    );
+  }
+
+  Map<String, dynamic> toDbMap({required int cachedAtMs}) {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'price': price,
+      'discount_percentage': discountPercentage,
+      'rating': rating,
+      'stock': stock,
+      'brand': brand,
+      'category': category,
+      'thumbnail': thumbnail,
+      'images': jsonEncode(images),
+      'cached_at': cachedAtMs,
+    };
   }
 }
 
