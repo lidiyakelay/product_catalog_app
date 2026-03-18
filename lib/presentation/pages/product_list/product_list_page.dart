@@ -3,19 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/constants/app_constants.dart';
 import '../../../app/di/injection_container.dart';
-import '../../../app/theme/app_theme.dart';
 import '../../../presentation/state_management/product_detail/product_detail_bloc.dart';
 import '../../../presentation/state_management/product_detail/product_detail_event.dart';
-import '../../../presentation/state_management/product_detail/product_detail_state.dart';
 import '../../../presentation/state_management/product_list/product_list_bloc.dart';
 import '../../../presentation/state_management/product_list/product_list_event.dart';
-import '../../../presentation/state_management/product_list/product_list_state.dart';
-import '../../../presentation/widgets/category_chips.dart';
-import '../../../presentation/widgets/product_card.dart';
-import '../../../presentation/widgets/search_bar_widget.dart';
-import '../../../presentation/widgets/shimmer_loading.dart';
-import '../../../presentation/widgets/state_widgets.dart';
-import '../product_detail/product_detail_page.dart';
+import '../../../presentation/state_management/theme/theme_cubit.dart';
+import 'widgets/product_list_content.dart';
+import 'widgets/product_list_detail_panel.dart';
+import 'widgets/product_list_filters_section.dart';
 
 class ProductListPage extends StatefulWidget {
   final int? selectedProductId;
@@ -88,13 +83,24 @@ class _ProductListPageState extends State<ProductListPage> {
         appBar: AppBar(
           title: const Text('Product Catalog'),
           actions: [
-           
-            Builder(
-              builder: (ctx) => IconButton(
-                onPressed: () => ctx.push('/showcase'),
-                icon: const Icon(Icons.brightness_6_outlined),
-                tooltip: 'Toggle Theme',
-              ),
+            BlocBuilder<ThemeCubit, ThemeMode>(
+              builder: (context, themeMode) {
+                final isDark = themeMode == ThemeMode.dark ||
+                    (themeMode == ThemeMode.system &&
+                        Theme.of(context).brightness == Brightness.dark);
+
+                return IconButton(
+                  onPressed: () => context.read<ThemeCubit>().toggle(),
+                  icon: Icon(
+                    isDark
+                        ? Icons.light_mode_outlined
+                        : Icons.dark_mode_outlined,
+                  ),
+                  tooltip: isDark
+                      ? 'Switch to light theme'
+                      : 'Switch to dark theme',
+                );
+              },
             ),
           ],
         ),
@@ -106,11 +112,9 @@ class _ProductListPageState extends State<ProductListPage> {
   Widget _buildPhoneLayout() {
     return Column(
       children: [
-        _SearchBar(),
-        _CategoryChipsBar(),
-        const SizedBox(height: 4),
+        const ProductListFiltersSection(),
         Expanded(
-          child: _ProductListContent(
+          child: ProductListContent(
             scrollController: _scrollController,
             onProductTap: (id) => context.push('/products/$id'),
           ),
@@ -126,11 +130,9 @@ class _ProductListPageState extends State<ProductListPage> {
           width: AppConstants.listPanelWidth,
           child: Column(
             children: [
-              _SearchBar(),
-              _CategoryChipsBar(),
-              const SizedBox(height: 4),
+              const ProductListFiltersSection(),
               Expanded(
-                child: _ProductListContent(
+                child: ProductListContent(
                   scrollController: _scrollController,
                   selectedProductId: _selectedProductId,
                   onProductTap: (id) {
@@ -145,144 +147,9 @@ class _ProductListPageState extends State<ProductListPage> {
         ),
         const VerticalDivider(width: 1),
         Expanded(
-          child: _selectedProductId == null
-              ? const NoSelectionWidget()
-              : BlocBuilder<ProductDetailBloc, ProductDetailState>(
-                  builder: (context, state) {
-                    if (state is ProductDetailInitial || state is ProductDetailLoading) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
-                    }
-
-                    if (state is ProductDetailError) {
-                        return ErrorStateWidget(
-                          message: state.message,
-                          onRetry: () => context
-                              .read<ProductDetailBloc>()
-                              .add(ProductDetailRequested(_selectedProductId!)),
-                        );
-                    }
-
-                    if (state is ProductDetailLoaded) {
-                      return ProductDetailContent(product: state.product);
-                    }
-
-                    return const NoSelectionWidget();
-                  },
-                ),
+          child: ProductListDetailPanel(selectedProductId: _selectedProductId),
         ),
       ],
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<ProductListBloc, ProductListState>(
-      buildWhen: (prev, curr) => prev.searchQuery != curr.searchQuery,
-      builder: (context, state) {
-        return SearchBarWidget(
-          initialQuery: state.searchQuery,
-          onChanged: (query) {
-            context.read<ProductListBloc>().add(ProductListSearchChanged(query));
-          },
-        );
-      },
-    );
-  }
-}
-
-class _CategoryChipsBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<ProductListBloc, ProductListState>(
-      buildWhen: (prev, curr) =>
-          prev.categories != curr.categories ||
-          prev.selectedCategory != curr.selectedCategory,
-      builder: (context, state) {
-        return CategoryChips(
-          categories: state.categories,
-          selectedCategory: state.selectedCategory,
-          onSelected: (category) {
-            context
-                .read<ProductListBloc>()
-                .add(ProductListCategorySelected(category));
-          },
-        );
-      },
-    );
-  }
-}
-
-class _ProductListContent extends StatelessWidget {
-  final ScrollController scrollController;
-  final ValueChanged<int> onProductTap;
-  final int? selectedProductId;
-
-  const _ProductListContent({
-    required this.scrollController,
-    required this.onProductTap,
-    this.selectedProductId,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<ProductListBloc, ProductListState>(
-      builder: (context, state) {
-        if ((state.status == ProductListStatus.initial ||
-                state.status == ProductListStatus.loading) &&
-            state.products.isEmpty) {
-          return const ShimmerLoadingList();
-        }
-
-        if (state.status == ProductListStatus.error && state.products.isEmpty) {
-          return ErrorStateWidget(
-            message: state.errorMessage ?? 'Failed to load products',
-            onRetry: () =>
-                context.read<ProductListBloc>().add(const ProductListFetched()),
-          );
-        }
-
-        if (state.products.isEmpty) {
-          return const EmptyStateWidget(
-            title: 'No products found',
-            message: 'Try changing your search or selected category',
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            context.read<ProductListBloc>().add(const ProductListRefreshed());
-          },
-          child: ListView.builder(
-            controller: scrollController,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingMd,
-            ),
-            itemCount:
-                state.products.length + (state.isLoadingMore ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= state.products.length) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              final product = state.products[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
-                child: ProductCard(
-                  product: product,
-                  isSelected: selectedProductId == product.id,
-                  onTap: () => onProductTap(product.id),
-                ),
-              );
-            },
-          ),
-        );
-      },
     );
   }
 }
