@@ -75,8 +75,13 @@ class _ProductListPageState extends State<ProductListPage> {
         ),
         if (isWide)
           BlocProvider(
-            create: (_) => sl<ProductDetailBloc>()
-              ..add(ProductDetailRequested(_selectedProductId ?? 1)),
+            create: (_) {
+              final bloc = sl<ProductDetailBloc>();
+              if (_selectedProductId != null) {
+                bloc.add(ProductDetailRequested(_selectedProductId!));
+              }
+              return bloc;
+            },
           ),
       ],
       child: Scaffold(
